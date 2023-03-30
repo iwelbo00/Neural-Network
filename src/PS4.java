@@ -1,30 +1,21 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
 
 public class PS4 {
-	// ArrayList<ArrayList<Double>> w1 = new ArrayList<ArrayList<Double>>();
 	double[][] w1 = new double[30][785];
-	//ArrayList<ArrayList<Double>> w2 = new ArrayList<ArrayList<Double>>();
 	double[][] w2 = new double[10][31];
-	//ArrayList<ArrayList<Double>> x = new ArrayList<ArrayList<Double>>();
 	double[][] x = new double[10000][785];
-	//ArrayList<int[]> y = new ArrayList<int[]>();
+	int[][] y = new int[10000][1];
 
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
 			PS4 p = new PS4();
 			p.readEm(args[0], args[1], args[2], args[3]);
-
 		} else {
 			System.out.println("Invalid amount of arguments");
 		}
-	}
-
-	public void print() {
-
 	}
 
 	public void readEm(String wOne, String wTwo, String xD, String yD) {
@@ -38,13 +29,10 @@ public class PS4 {
 				String line = "";
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
-					int count = 0;
 					for (int row = 0; row < w1.length; row++) {
 						w1[row][0] = 1.0;
-						for (String item : data) {
-							for (int col = 1; col < w1[row].length; col++) {
-								w1[row][col] = Double.parseDouble(item);
-							}
+						for (int col = 1; col < w1[row].length; col++) {
+							w1[row][col] = Double.parseDouble(data[col]);
 						}
 					}
 				}
@@ -58,17 +46,12 @@ public class PS4 {
 				String line = "";
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
-					ArrayList<Double> row = new ArrayList<Double>();
-					int count = 0;
-					for (String item : data) {
-						if (count == 0) {
-							row.add(1.0);
-							count++;
+					for (int row = 0; row < w2.length; row++) {
+						w2[row][0] = 1.0;
+						for (int col = 1; col < w2[row].length; col++) {
+							w2[row][col] = Double.parseDouble(data[col]);
 						}
-						row.add(Double.parseDouble(item));
-
 					}
-					w2.add(row);
 				}
 			}
 			file = new File(xD);
@@ -76,19 +59,14 @@ public class PS4 {
 				f = new FileReader(xD);
 				br = new BufferedReader(f);
 				String line = "";
+				int row = 0;
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
-					ArrayList<Double> row = new ArrayList<Double>();
-					int count = 0;
-					for (String item : data) {
-						if (count == 0) {
-							row.add(1.0);
-							count++;
-						}
-						row.add(Double.parseDouble(item));
-
+					x[row][0] = 1.0;
+					for (int col = 1; col < x[row].length; col++) {
+						x[row][col] = Double.parseDouble(data[col-1]);
 					}
-					x.add(row);
+					row++;
 				}
 			}
 			file = new File(yD);
@@ -97,10 +75,9 @@ public class PS4 {
 				br = new BufferedReader(f);
 				String line = "";
 				while ((line = br.readLine()) != null) {
-					int num = Integer.parseInt(line);
-					int[] a = new int[10];
-					a[num - 1] = 1;
-					y.add(a);
+					for (int i = 0; i < y.length; i++) {
+						y[Integer.parseInt(line) - 1][0] = 1;
+					}
 				}
 			}
 		} catch (Exception ex) {
