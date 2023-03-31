@@ -7,15 +7,57 @@ public class PS4 {
 	double[][] w2 = new double[10][31];
 	double[][] x = new double[10000][785];
 	int[][] y = new int[10000][1];
+	double[][] h1 = new double[10000][31];
+	double[][] yHat = new double[10000][10];
 
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
 			PS4 p = new PS4();
 			p.readEm(args[0], args[1], args[2], args[3]);
+			p.h1 = p.findH(p.x, p.w1);
+			p.h1 = p.addBias(p.h1);
+			p.yHat = p.findH(p.h1, p.w2);
+			printDimensions(p.yHat);
+			for (double[] item : p.yHat) {
+				for (double data : item) {
+					System.out.print(data + " ");
+				}
+				System.out.println();
+			}
 		} else {
 			System.out.println("Invalid amount of arguments");
 		}
+	}
+	
+	public double[][] addBias(double[][] h) {
+		double[][] output = new double[h.length][h[0].length+1];
+		for(int i = 0; i < h.length; i++) {
+			for(int j = -1; j < h[i].length; j++) {
+				if(j == -1) {
+					output[i][0] = 1;
+				}else {
+					output[i][j] = h[i][j];
+				}
+			}
+		}
+		return output;
+	}
+	
+	public double activation(double x) {
+		double re = (1 / (1 + Math.pow(Math.E, -x)));
+		return re;
+	}
+
+	public double[][] findH(double[][] x, double[][] w) {
+		w = transpose(w);
+		double[][] re = multiply(x, w);
+		for (int i = 0; i < re.length; i++) {
+			for (int j = 0; j < re[i].length; j++) {
+				re[i][j] = activation(re[i][j]);
+			}
+		}
+		return re;
 	}
 
 	public void readEm(String wOne, String wTwo, String xD, String yD) {
@@ -64,7 +106,7 @@ public class PS4 {
 					String[] data = line.split(",");
 					x[row][0] = 1.0;
 					for (int col = 1; col < x[row].length; col++) {
-						x[row][col] = Double.parseDouble(data[col-1]);
+						x[row][col] = Double.parseDouble(data[col - 1]);
 					}
 					row++;
 				}
