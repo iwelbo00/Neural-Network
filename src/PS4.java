@@ -1,57 +1,101 @@
+import java.awt.desktop.SystemSleepEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.Arrays;
 
 public class PS4 {
 	double[][] w1 = new double[30][785];
 	double[][] w2 = new double[10][31];
 	double[][] x = new double[10000][785];
-	int[][] y = new int[10000][1];
+	int[][] y = new int[10000][10];
 	double[][] h1 = new double[10000][31];
 	double[][] yHat = new double[10000][10];
-
+	
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
 			PS4 p = new PS4();
 			p.readEm(args[0], args[1], args[2], args[3]);
-			p.h1 = p.findH(p.x, p.w1);
-			p.h1 = p.addBias(p.h1);
-			p.yHat = p.findH(p.h1, p.w2);
-			printDimensions(p.yHat);
-			for (double[] item : p.yHat) {
-				for (double data : item) {
-					System.out.print(data + " ");
-				}
-				System.out.println();
-			}
+			p.forwardProp();
+
 		} else {
 			System.out.println("Invalid amount of arguments");
 		}
 	}
-	
-	public double[][] addBias(double[][] h) {
-		double[][] output = new double[h.length][h[0].length+1];
-		for(int i = 0; i < h.length; i++) {
-			for(int j = -1; j < h[i].length; j++) {
-				if(j == -1) {
-					output[i][0] = 1;
-				}else {
-					output[i][j] = h[i][j];
-				}
+
+	public void print(double[][] input) {
+		for (int i = 0; i < input.length; i++) {
+			for (int j = 0; j < input[i].length; j++) {
+				System.out.print(input[i][j] + " ");
 			}
+			System.out.print("\n");
 		}
-		return output;
+	}
+
+	public void forwardProp() {
+		h1 = findH(x, w1);
+		h1 = addBias(h1);
+		yHat = findH(h1, w2);
+		yHat = softMax(yHat);
+		print(yHat);
+//		for(int i = 0; i < yHat.length; i++) {
+//			System.out.println(findMax(i));
+//		}
 	}
 	
+	public int findMax(int row) {
+		double max = yHat[row][0];
+		int theOne = 0;
+		for(int i = 0; i < yHat[row].length; i++) {
+			if(max < yHat[row][i]) {
+				max = yHat[row][i];
+				theOne = i+1;
+			}
+		}
+		return theOne;
+		
+	}
+	
+	public double[][] addBias(double[][] h) {
+		double[][] output = new double[h.length][h[0].length + 1];
+		for (int i = 0; i < h.length; i++) {
+			output[i][0] = 1.0;
+			for (int j = 0; j < h[i].length; j++) {
+				output[i][j + 1] = h[i][j];
+			}
+		}
+		h1 = output;
+		return h1;
+	}
+
 	public double activation(double x) {
-		double re = (1 / (1 + Math.pow(Math.E, -x)));
+		double re = (1 / (1 + Math.exp(-x)));
 		return re;
 	}
 
+	public double rowSum(int row, int col, double[][] in) {
+		double it = in[row][col];
+		double sum = 0;
+		for(int i = 0; i < in[row].length; i++) {
+				sum += in[row][i];
+		}
+		it = (it/sum);
+		return it;
+	}
+	
+	public double[][] softMax(double[][] input) {
+		double[][] softMax = new double[input.length][input[0].length];
+		for(int i = 0; i < softMax.length; i++) {
+			for(int j = 0; j < softMax[i].length; j++) {
+				softMax[i][j] = rowSum(i, j, input);
+			}
+		}
+		return softMax;
+	}
+	
 	public double[][] findH(double[][] x, double[][] w) {
-		w = transpose(w);
-		double[][] re = multiply(x, w);
+		double[][] re = multiply(x, transpose(w));
 		for (int i = 0; i < re.length; i++) {
 			for (int j = 0; j < re[i].length; j++) {
 				re[i][j] = activation(re[i][j]);
@@ -69,15 +113,15 @@ public class PS4 {
 				f = new FileReader(wOne);
 				br = new BufferedReader(f);
 				String line = "";
+				int row = 0;
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
-					for (int row = 0; row < w1.length; row++) {
-						w1[row][0] = 1.0;
-						for (int col = 1; col < w1[row].length; col++) {
-							w1[row][col] = Double.parseDouble(data[col]);
-						}
+					for (int col = 0; col < w1[row].length; col++) {
+						w1[row][col] = Double.parseDouble(data[col]);
 					}
+					row++;
 				}
+				br.close();
 			} else {
 				System.out.println("Invalid file: " + wOne);
 			}
@@ -86,15 +130,15 @@ public class PS4 {
 				f = new FileReader(wTwo);
 				br = new BufferedReader(f);
 				String line = "";
+				int row = 0;
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
-					for (int row = 0; row < w2.length; row++) {
-						w2[row][0] = 1.0;
-						for (int col = 1; col < w2[row].length; col++) {
-							w2[row][col] = Double.parseDouble(data[col]);
-						}
+					for (int col = 0; col < w2[row].length; col++) {
+						w2[row][col] = Double.parseDouble(data[col]);
 					}
+					row++;
 				}
+				br.close();
 			}
 			file = new File(xD);
 			if (file.exists()) {
@@ -105,11 +149,12 @@ public class PS4 {
 				while ((line = br.readLine()) != null) {
 					String[] data = line.split(",");
 					x[row][0] = 1.0;
-					for (int col = 1; col < x[row].length; col++) {
-						x[row][col] = Double.parseDouble(data[col - 1]);
+					for (int col = 0; col < data.length; col++) {
+						x[row][col + 1] = Double.parseDouble(data[col]);
 					}
 					row++;
 				}
+				br.close();
 			}
 			file = new File(yD);
 			if (file.exists()) {
@@ -118,9 +163,10 @@ public class PS4 {
 				String line = "";
 				while ((line = br.readLine()) != null) {
 					for (int i = 0; i < y.length; i++) {
-						y[Integer.parseInt(line) - 1][0] = 1;
+						y[i][Integer.parseInt(line) - 1] = 1;
 					}
 				}
+				br.close();
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
