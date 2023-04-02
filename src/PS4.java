@@ -1,8 +1,6 @@
-import java.awt.desktop.SystemSleepEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.Arrays;
 
 public class PS4 {
 	double[][] w1 = new double[30][785];
@@ -11,6 +9,7 @@ public class PS4 {
 	int[][] y = new int[10000][10];
 	double[][] h1 = new double[10000][31];
 	double[][] yHat = new double[10000][10];
+	int[][] yEnocded = new int[10000][10];
 	
 	public static void main(String[] args) {
 
@@ -32,28 +31,54 @@ public class PS4 {
 			System.out.print("\n");
 		}
 	}
-
+	public void print(int[][] input) {
+		for (int i = 0; i < input.length; i++) {
+			for (int j = 0; j < input[i].length; j++) {
+				System.out.print(input[i][j] + " ");
+			}
+			System.out.print("\n");
+		}
+	}
 	public void forwardProp() {
 		h1 = findH(x, w1);
 		h1 = addBias(h1);
 		yHat = findH(h1, w2);
 		yHat = softMax(yHat);
-		print(yHat);
+		//print(yHat);
 //		for(int i = 0; i < yHat.length; i++) {
 //			System.out.println(findMax(i));
 //		}
+		yEnocded = buildEncodedYs();
+		print(yEnocded);
+	}
+	
+	public int[][] buildEncodedYs(){
+		int[][] re = new int[yEnocded.length][yEnocded[0].length];
+		for(int row = 0; row < yEnocded.length; row++) {
+			int tRow = findMax(row);
+			for(int col = 0; col < yEnocded[0].length; col++) {
+				if(col != tRow) {
+					re[row][col] = 0;
+				}else {
+					re[row][col] = 1;
+				}
+			}
+		}
+		return re;
 	}
 	
 	public int findMax(int row) {
 		double max = yHat[row][0];
 		int theOne = 0;
 		for(int i = 0; i < yHat[row].length; i++) {
+			//This will change our decimal values into the one-hot encoded stuff
 			if(max < yHat[row][i]) {
+				
 				max = yHat[row][i];
 				theOne = i+1;
 			}
 		}
-		return theOne;
+		return theOne-1;
 		
 	}
 	
