@@ -10,7 +10,7 @@ public class PS4 {
 	double[][] h1 = new double[10000][31];
 	double[][] yHat = new double[10000][10];
 	int[][] yEnocded = new int[10000][10];
-	
+
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
@@ -26,11 +26,12 @@ public class PS4 {
 	public void print(double[][] input) {
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
-				System.out.print(input[i][j] + " ");
+				System.out.printf("%.3f\t", input[i][j]);
 			}
 			System.out.print("\n");
 		}
 	}
+
 	public void print(int[][] input) {
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
@@ -39,49 +40,52 @@ public class PS4 {
 			System.out.print("\n");
 		}
 	}
+
 	public void forwardProp() {
 		h1 = findH(x, w1);
 		h1 = addBias(h1);
 		yHat = findH(h1, w2);
-		yHat = softMax(yHat);
-		//print(yHat);
+		//yHat = softMax(yHat);
+		print(yHat);
 //		for(int i = 0; i < yHat.length; i++) {
 //			System.out.println(findMax(i));
 //		}
 		yEnocded = buildEncodedYs();
-		print(yEnocded);
+		//print(yEnocded);
 	}
-	
-	public int[][] buildEncodedYs(){
+
+	public int[][] buildEncodedYs() {
 		int[][] re = new int[yEnocded.length][yEnocded[0].length];
-		for(int row = 0; row < yEnocded.length; row++) {
+		for (int row = 0; row < yEnocded.length; row++) {
 			int tRow = findMax(row);
-			for(int col = 0; col < yEnocded[0].length; col++) {
-				if(col != tRow) {
+			for (int col = 0; col < yEnocded[0].length; col++) {
+				if (col != tRow) {
 					re[row][col] = 0;
-				}else {
+				} else {
 					re[row][col] = 1;
 				}
 			}
 		}
 		return re;
 	}
-	
+
 	public int findMax(int row) {
 		double max = yHat[row][0];
 		int theOne = 0;
-		for(int i = 0; i < yHat[row].length; i++) {
-			//This will change our decimal values into the one-hot encoded stuff
-			if(max < yHat[row][i]) {
-				
+		for (int i = 0; i < yHat[row].length; i++) {
+			// This will change our decimal values into the one-hot encoded stuff
+			if (max < yHat[row][i]) {
 				max = yHat[row][i];
-				theOne = i+1;
+				theOne = i + 1;
 			}
 		}
-		return theOne-1;
-		
+		if (theOne == 0) {
+			return yHat[row].length - 1;
+		} else {
+			return theOne - 1;
+		}
 	}
-	
+
 	public double[][] addBias(double[][] h) {
 		double[][] output = new double[h.length][h[0].length + 1];
 		for (int i = 0; i < h.length; i++) {
@@ -102,23 +106,23 @@ public class PS4 {
 	public double rowSum(int row, int col, double[][] in) {
 		double it = in[row][col];
 		double sum = 0;
-		for(int i = 0; i < in[row].length; i++) {
-				sum += in[row][i];
+		for (int i = 0; i < in[row].length; i++) {
+			sum += in[row][i];
 		}
-		it = (it/sum);
+		it = (it / sum);
 		return it;
 	}
-	
+
 	public double[][] softMax(double[][] input) {
 		double[][] softMax = new double[input.length][input[0].length];
-		for(int i = 0; i < softMax.length; i++) {
-			for(int j = 0; j < softMax[i].length; j++) {
+		for (int i = 0; i < softMax.length; i++) {
+			for (int j = 0; j < softMax[i].length; j++) {
 				softMax[i][j] = rowSum(i, j, input);
 			}
 		}
 		return softMax;
 	}
-	
+
 	public double[][] findH(double[][] x, double[][] w) {
 		double[][] re = multiply(x, transpose(w));
 		for (int i = 0; i < re.length; i++) {
