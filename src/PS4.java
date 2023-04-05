@@ -1,16 +1,23 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.Arrays;
 
 public class PS4 {
+	
 	double[][] w1 = new double[30][785];
 	double[][] w2 = new double[10][31];
 	double[][] x = new double[10000][785];
 	int[][] y = new int[10000][10];
 	double[][] h1 = new double[10000][31];
+	double[][] unActH1 = new double[10000][30];
 	double[][] yHat = new double[10000][10];
 	int[][] yEnocded = new int[10000][10];
-
+	double[][] delta2 = new double[10000][10];
+	double[][] delta1 = new double[10000][30];
+	double[][] nabby2 = new double[10][30];
+	double[][] nabby1 = new double[30][785];
+	
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
@@ -22,38 +29,57 @@ public class PS4 {
 			System.out.println("Invalid amount of arguments");
 		}
 	}
-
-	public void print(double[][] input) {
-		for (int i = 0; i < input.length; i++) {
-			for (int j = 0; j < input[i].length; j++) {
-				System.out.printf("%.3f\t", input[i][j]);
-			}
-			System.out.print("\n");
-		}
-	}
-
-	public void print(int[][] input) {
-		for (int i = 0; i < input.length; i++) {
-			for (int j = 0; j < input[i].length; j++) {
-				System.out.print(input[i][j] + " ");
-			}
-			System.out.print("\n");
-		}
-	}
-
 	public void forwardProp() {
+		unActH1 = multiply(x, transpose(w1));
 		h1 = findH(x, w1);
 		h1 = addBias(h1);
 		yHat = findH(h1, w2);
-		//yHat = softMax(yHat);
-		print(yHat);
-//		for(int i = 0; i < yHat.length; i++) {
-//			System.out.println(findMax(i));
-//		}
 		yEnocded = buildEncodedYs();
-		//print(yEnocded);
+		buildDelta2();
+		buildDelta1();
+		nabby2 = nabla2();
+		nabby1 = nabla1();
 	}
-
+	
+	public double[][] nabla1(){
+		double[][] re = multiply(transpose(delta1), x);
+		return re;
+	}
+	
+	public double[][] nabla2() {
+		double[][] re = multiply(transpose(delta2), unActH1);
+		return re;
+	}
+	
+	public void buildDelta1() {
+		double[][] left = multiply(delta2, dropFirstColumn(w2));
+		double[][] right = multiply(dropFirstColumn(x), transpose(dropFirstColumn(w1)));
+		for(int i = 0; i < right.length; i++) {
+			for(int j = 0; j < right[i].length; j++) {
+				right[i][j] = activation(right[i][j]) * (1-activation(right[i][j]));
+			}
+		}
+		delta1 = hallmarkProduct(left, right);
+	}
+	
+	public double[][] hallmarkProduct(double[][] a, double[][] b){
+		double[][] re = new double[a.length][a[0].length];
+		for(int i = 0; i < a.length; i++) {
+			for(int j = 0; j < a[i].length; j++) {
+				re[i][j] = a[i][j] * b[i][j];
+			}
+		}
+		return re;
+	}
+	
+	public void buildDelta2(){
+		for(int i = 0; i < delta2.length; i++) {
+			for(int j = 0; j < delta2[0].length; j++) {
+				delta2[i][j] = yHat[i][j] - y[i][j];
+			}
+		}
+	}
+	
 	public int[][] buildEncodedYs() {
 		int[][] re = new int[yEnocded.length][yEnocded[0].length];
 		for (int row = 0; row < yEnocded.length; row++) {
@@ -190,10 +216,10 @@ public class PS4 {
 				f = new FileReader(yD);
 				br = new BufferedReader(f);
 				String line = "";
+				int row = 0;
 				while ((line = br.readLine()) != null) {
-					for (int i = 0; i < y.length; i++) {
-						y[i][Integer.parseInt(line) - 1] = 1;
-					}
+					y[row][Integer.parseInt(line)-1] = 1;
+					row++;
 				}
 				br.close();
 			}
@@ -259,4 +285,21 @@ public class PS4 {
 		System.out.println(xdim);
 	}
 
+	public void print(double[][] input) {
+		for (int i = 0; i < input.length; i++) {
+			for (int j = 0; j < input[i].length; j++) {
+				System.out.print(input[i][j]+"\t");
+			}
+			System.out.print("\n");
+		}
+	}
+
+	public void print(int[][] input) {
+		for (int i = 0; i < input.length; i++) {
+			for (int j = 0; j < input[i].length; j++) {
+				System.out.print(input[i][j] + " ");
+			}
+			System.out.print("\n");
+		}
+	}
 }
