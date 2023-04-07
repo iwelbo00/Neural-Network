@@ -4,7 +4,7 @@ import java.io.FileReader;
 import java.util.Arrays;
 
 public class PS4 {
-	
+
 	double[][] w1 = new double[30][785];
 	double[][] w2 = new double[10][31];
 	double[][] x = new double[10000][785];
@@ -17,7 +17,8 @@ public class PS4 {
 	double[][] delta1 = new double[10000][30];
 	double[][] nabby2 = new double[10][30];
 	double[][] nabby1 = new double[30][785];
-	
+	double alpha = 0.25;
+
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
@@ -29,57 +30,129 @@ public class PS4 {
 			System.out.println("Invalid amount of arguments");
 		}
 	}
+
 	public void forwardProp() {
-		unActH1 = multiply(x, transpose(w1));
-		h1 = findH(x, w1);
-		h1 = addBias(h1);
-		yHat = findH(h1, w2);
-		yEnocded = buildEncodedYs();
-		buildDelta2();
-		buildDelta1();
-		nabby2 = nabla2();
-		nabby1 = nabla1();
+		int epochs = 0;
+		while (epochs < 700) {
+			unActH1 = multiply(x, transpose(w1));
+			h1 = findH(x, w1);
+			h1 = addBias(h1);
+			yHat = findH(h1, w2);
+			yEnocded = buildEncodedYs();
+			buildDelta2();
+			buildDelta1();
+			nabby2 = nabla2();
+			nabby1 = nabla1();
+			adjustWeights();
+			epochs++;
+			System.out.println("Epoch: " + epochs);
+			System.out.printf("Accuracy: %.3f \n", (predictions() / 10000) * 100);
+			//print(w2);
+		}
 	}
-	
-	public double[][] nabla1(){
+
+	public double predictions() {
+		int in = 0;
+		for(int i = 0; i < yEnocded.length; i++) {
+			int index = 0;
+			for(int j = 0; j < yEnocded[0].length; j++) {
+				if(yEnocded[i][j] == 1) {
+					index = j;
+				}
+			}
+			if(y[i][index] == 1.0) {
+				in++;
+			}
+		}
+		return in;
+	}
+	public void adjustWeights() {
+		double reg = l2Reg(w1);
+		for (int i = 0; i < nabby1.length; i++) {
+			for (int j = 0; j < nabby1[i].length; j++) {
+				nabby1[i][j] += (0.001 / 10000) * reg;
+				nabby1[i][j] /= 10000;
+			}
+		}
+		reg = l2Reg(w2);
+		for (int i = 0; i < nabby2.length; i++) {
+			for (int j = 0; j < nabby2[i].length; j++) {
+				nabby2[i][j] += (0.001 / 10000) * reg;
+				nabby2[i][j] /= 10000;
+			}
+		}
+		for (int i = 0; i < w1.length; i++) {
+			for (int j = 0; j < w1[i].length; j++) {
+				w1[i][j] = w1[i][j] - (alpha * nabby1[i][j]);
+			}
+		}
+		double[][] nabby2Copy = new double[nabby2.length][nabby2[0].length + 1];
+		for (int i = 0; i < nabby2Copy.length; i++) {
+			for (int j = 0; j < nabby2Copy[i].length; j++) {
+				if (j == 0) {
+					nabby2Copy[i][j] = 0;
+				} else {
+					nabby2Copy[i][j] = nabby2[i][j - 1];
+				}
+			}
+		}
+		for (int i = 0; i < w2.length; i++) {
+			for (int j = 0; j < w2[i].length; j++) {
+				w2[i][j] = w2[i][j] - (alpha * nabby2Copy[i][j]);
+			}
+		}
+	}
+
+	public double l2Reg(double[][] w) {
+		double sum = 0;
+		double[][] a = dropFirstColumn(w);
+		for (int i = 0; i < a.length; i++) {
+			for (int j = 0; j < a[i].length; j++) {
+				sum += Math.pow(a[i][j], 2);
+			}
+		}
+		return sum;
+	}
+
+	public double[][] nabla1() {
 		double[][] re = multiply(transpose(delta1), x);
 		return re;
 	}
-	
+
 	public double[][] nabla2() {
 		double[][] re = multiply(transpose(delta2), unActH1);
 		return re;
 	}
-	
+
 	public void buildDelta1() {
 		double[][] left = multiply(delta2, dropFirstColumn(w2));
 		double[][] right = multiply(dropFirstColumn(x), transpose(dropFirstColumn(w1)));
-		for(int i = 0; i < right.length; i++) {
-			for(int j = 0; j < right[i].length; j++) {
-				right[i][j] = activation(right[i][j]) * (1-activation(right[i][j]));
+		for (int i = 0; i < right.length; i++) {
+			for (int j = 0; j < right[i].length; j++) {
+				right[i][j] = activation(right[i][j]) * (1 - activation(right[i][j]));
 			}
 		}
 		delta1 = hallmarkProduct(left, right);
 	}
-	
-	public double[][] hallmarkProduct(double[][] a, double[][] b){
+
+	public double[][] hallmarkProduct(double[][] a, double[][] b) {
 		double[][] re = new double[a.length][a[0].length];
-		for(int i = 0; i < a.length; i++) {
-			for(int j = 0; j < a[i].length; j++) {
+		for (int i = 0; i < a.length; i++) {
+			for (int j = 0; j < a[i].length; j++) {
 				re[i][j] = a[i][j] * b[i][j];
 			}
 		}
 		return re;
 	}
-	
-	public void buildDelta2(){
-		for(int i = 0; i < delta2.length; i++) {
-			for(int j = 0; j < delta2[0].length; j++) {
+
+	public void buildDelta2() {
+		for (int i = 0; i < delta2.length; i++) {
+			for (int j = 0; j < delta2[0].length; j++) {
 				delta2[i][j] = yHat[i][j] - y[i][j];
 			}
 		}
 	}
-	
+
 	public int[][] buildEncodedYs() {
 		int[][] re = new int[yEnocded.length][yEnocded[0].length];
 		for (int row = 0; row < yEnocded.length; row++) {
@@ -218,7 +291,7 @@ public class PS4 {
 				String line = "";
 				int row = 0;
 				while ((line = br.readLine()) != null) {
-					y[row][Integer.parseInt(line)-1] = 1;
+					y[row][Integer.parseInt(line) - 1] = 1;
 					row++;
 				}
 				br.close();
@@ -288,7 +361,7 @@ public class PS4 {
 	public void print(double[][] input) {
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
-				System.out.print(input[i][j]+"\t");
+				System.out.printf("%.3f\t", input[i][j]);
 			}
 			System.out.print("\n");
 		}
